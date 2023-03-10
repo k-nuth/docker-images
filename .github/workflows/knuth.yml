@@ -55,7 +55,7 @@ jobs:
         run: |
           # docker build . --file Dockerfile --tag ${{ env.name }}:${{ steps.version.outputs.version }}
 
-          docker build ./gcc/ --build-arg DISTRO_VERSION=$DISTRO_VERSION \
+          docker build ./base/ --build-arg DISTRO_VERSION=$DISTRO_VERSION \
                         --build-arg CMAKE_VERSION=$CMAKE_VERSION \
                         --build-arg CMAKE_VERSION_FULL=$CMAKE_VERSION_FULL \
                         --build-arg PYTHON_VERSION=$PYTHON_VERSION \
@@ -105,7 +105,7 @@ jobs:
           #               --build-arg CONAN_VERSION=$CONAN_VERSION \
           #               --tag ${{ env.name }}:${{ steps.version.outputs.version }}
 
-          docker build ./base/ --build-arg DISTRO_VERSION=$DISTRO_VERSION \
+          docker build ./gcc/ --build-arg DISTRO_VERSION=$DISTRO_VERSION \
                         --build-arg DOCKER_USERNAME=$DOCKER_USERNAME \
                         --build-arg DISTRO=$DISTRO \
                         --build-arg SUFFIX=$SUFFIX \
