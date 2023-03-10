@@ -50,16 +50,16 @@ RUN apt-get -qq update \
        language-pack-en \
     && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/* \
-    && wget -q --no-check-certificate https://cmake.org/files/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION_FULL}-Linux-x86_64.tar.gz \
-    && tar -xzf cmake-${CMAKE_VERSION_FULL}-Linux-x86_64.tar.gz \
+    && wget -q --no-check-certificate https://cmake.org/files/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION_FULL}-linux-x86_64.tar.gz \
+    && tar -xzf cmake-${CMAKE_VERSION_FULL}-linux-x86_64.tar.gz \
        --exclude=bin/cmake-gui \
        --exclude=doc/cmake \
        --exclude=share/cmake-${CMAKE_VERSION}/Help \
        --exclude=share/vim \
        --exclude=share/vim \
-    && cp -fR cmake-${CMAKE_VERSION_FULL}-Linux-x86_64/* /usr \
-    && rm -rf /root/cmake-${CMAKE_VERSION_FULL}-Linux-x86_64 \
-    && rm /root/cmake-${CMAKE_VERSION_FULL}-Linux-x86_64.tar.gz \
+    && cp -fR cmake-${CMAKE_VERSION_FULL}-linux-x86_64/* /usr \
+    && rm -rf /root/cmake-${CMAKE_VERSION_FULL}-linux-x86_64 \
+    && rm /root/cmake-${CMAKE_VERSION_FULL}-linux-x86_64.tar.gz \
     && wget --no-check-certificate --quiet -O /tmp/pyenv-installer https://raw.githubusercontent.com/pyenv/pyenv-installer/56d708c8bda56370c4bc1e2fce68087cfcd007eb/bin/pyenv-installer \
     && chmod +x /tmp/pyenv-installer \
     && /tmp/pyenv-installer \
