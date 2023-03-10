@@ -20,6 +20,7 @@ env:
   SUFFIX: 18.04
   DOCKER_TAG: latest
   GCC_VERSION: 12.2.0
+  GCC_VERSION_SHORT: 12
 
 
 jobs:
@@ -27,15 +28,9 @@ jobs:
   build-base-docker-image:
     runs-on: ubuntu-latest
     outputs:
-      # name: docker.pkg.github.com/${{ github.repository }}/alpine-image:${{ steps.version.outputs.version }}
-      # name: docker.pkg.github.com/k-nuth/kth/alpine-image:${{ steps.version.outputs.version }}
       name: kthnode/base-ubuntu$DISTRO_VERSION:${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.version }}
-
-
     env:
-      # name: docker.pkg.github.com/${{ github.repository }}/alpine-image
-      # name: docker.pkg.github.com/k-nuth/kth/alpine-image
       name: kthnode/base-ubuntu$DISTRO_VERSION
     steps:
       - uses: actions/checkout@v3
@@ -43,8 +38,6 @@ jobs:
         run: echo "version=${{ hashFiles('base/Dockerfile') }}" >> $GITHUB_OUTPUT
       - uses: docker/login-action@v2
         with:
-          # registry: docker.pkg.github.com
-          # username: $DOCKER_USERNAME
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
       - id: check
@@ -53,8 +46,6 @@ jobs:
           docker pull ${{ env.name }}:${{ steps.version.outputs.version }} > /dev/null && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
       - if: ${{ steps.check.outputs.exists == 'false' }}
         run: |
-          # docker build . --file Dockerfile --tag ${{ env.name }}:${{ steps.version.outputs.version }}
-
           docker build ./base/ --build-arg DISTRO_VERSION=$DISTRO_VERSION \
                         --build-arg CMAKE_VERSION=$CMAKE_VERSION \
                         --build-arg CMAKE_VERSION_FULL=$CMAKE_VERSION_FULL \
@@ -64,27 +55,23 @@ jobs:
 
       - if: ${{ steps.check.outputs.exists == 'false' }}
         run: docker push ${{ env.name }}:${{ steps.version.outputs.version }}
+      - run: docker tag ${{ env.name }}:${{ steps.version.outputs.version }} ${{ env.name }}:latest
+      - run: docker push ${{ env.name }}:latest
 
   build-gcc-docker-image:
     needs: [build-base-docker-image]
     runs-on: ubuntu-latest
     outputs:
-      # name: docker.pkg.github.com/${{ github.repository }}/alpine-image:${{ steps.version.outputs.version }}
-      # name: docker.pkg.github.com/k-nuth/kth/alpine-image:${{ steps.version.outputs.version }}
-      name: kthnode/base-ubuntu$DISTRO_VERSION:${{ steps.version.outputs.version }}
+      name: kthnode/gcc$GCC_VERSION_SHORT-ubuntu$DISTRO_VERSION:${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.version }}
-
     env:
-      # name: docker.pkg.github.com/${{ github.repository }}/alpine-image
-      # name: docker.pkg.github.com/k-nuth/kth/alpine-image
-      name: kthnode/base-ubuntu$DISTRO_VERSION
+      name: kthnode/gcc$GCC_VERSION_SHORT-ubuntu$DISTRO_VERSION
     steps:
       - uses: actions/checkout@v3
       - id: version
         run: echo "version=${{ hashFiles('gcc/Dockerfile') }}" >> $GITHUB_OUTPUT
       - uses: docker/login-action@v2
         with:
-          # registry: docker.pkg.github.com
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
       - id: check
@@ -93,17 +80,9 @@ jobs:
           docker pull ${{ env.name }}:${{ steps.version.outputs.version }} > /dev/null && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
       - if: ${{ steps.check.outputs.exists == 'false' }}
         run: |
-          # docker build . --file Dockerfile --tag ${{ env.name }}:${{ steps.version.outputs.version }}
-
-          echo "Base image: ${{ needs.build-base-docker-image.outputs.name }}"
+          # echo "Base image: ${{ needs.build-base-docker-image.outputs.name }}"
           echo "Base image tag: ${{ needs.build-base-docker-image.outputs.tag }}"
-
-          # docker build . --build-arg DISTRO_VERSION=$DISTRO_VERSION \
-          #               --build-arg CMAKE_VERSION=$CMAKE_VERSION \
-          #               --build-arg CMAKE_VERSION_FULL=$CMAKE_VERSION_FULL \
-          #               --build-arg PYTHON_VERSION=$PYTHON_VERSION \
-          #               --build-arg CONAN_VERSION=$CONAN_VERSION \
-          #               --tag ${{ env.name }}:${{ steps.version.outputs.version }}
+          echo "GCC image name: ${{ env.name }}
 
           docker build ./gcc/ --build-arg DISTRO_VERSION=$DISTRO_VERSION \
                         --build-arg DOCKER_USERNAME=$DOCKER_USERNAME \
@@ -116,3 +95,5 @@ jobs:
 
       - if: ${{ steps.check.outputs.exists == 'false' }}
         run: docker push ${{ env.name }}:${{ steps.version.outputs.version }}
+      - run: docker tag ${{ env.name }}:${{ steps.version.outputs.version }} ${{ env.name }}:latest
+      - run: docker push ${{ env.name }}:latest
