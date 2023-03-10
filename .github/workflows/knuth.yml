@@ -81,8 +81,9 @@ jobs:
       - if: ${{ steps.check.outputs.exists == 'false' }}
         run: |
           # echo "Base image: ${{ needs.build-base-docker-image.outputs.name }}"
-          echo "Base image tag: ${{ needs.build-base-docker-image.outputs.tag }}"
-          echo "GCC image name: ${{ env.name }}
+          # echo "Base image tag: ${{ needs.build-base-docker-image.outputs.tag }}"
+          echo "Base image tag: latest"
+          echo "GCC image name: ${{ env.name }}"
 
           docker build ./gcc/ --build-arg DISTRO_VERSION=$DISTRO_VERSION \
                         --build-arg DOCKER_USERNAME=$DOCKER_USERNAME \
