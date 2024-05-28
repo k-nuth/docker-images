@@ -11,10 +11,15 @@ env:
   # DOCKER_REGISTRY: taocpp.jfrog.io/model-docker
 #   DISTRO_VERSION: 18.04
   DISTRO_VERSION: 20.04
-  CMAKE_VERSION: 3.25
-  CMAKE_VERSION_FULL: 3.25.3
-  PYTHON_VERSION: 3.11.3
-  CONAN_VERSION: 2.0.5
+  # CMAKE_VERSION: 3.25
+  # CMAKE_VERSION_FULL: 3.25.3
+  CMAKE_VERSION: 3.29
+  CMAKE_VERSION_FULL: 3.29.3
+  # PYTHON_VERSION: 3.11.3
+  PYTHON_VERSION: 3.12.3
+  # CONAN_VERSION: 2.0.5
+  CONAN_VERSION: 2.3.2
+
 
   DOCKER_USERNAME: kthnode
   DISTRO: ubuntu
@@ -23,8 +28,10 @@ env:
   DOCKER_TAG: latest
   # GCC_VERSION: 12.2.0
   # GCC_VERSION_SHORT: 12
-  GCC_VERSION: 13.1.0
-  GCC_VERSION_SHORT: 13
+  # GCC_VERSION: 13.1.0
+  # GCC_VERSION_SHORT: 13
+  GCC_VERSION: 14.1.0
+  GCC_VERSION_SHORT: 14
 
 
 
@@ -60,8 +67,10 @@ jobs:
 
       - if: ${{ steps.check.outputs.exists == 'false' }}
         run: docker push ${{ env.name }}:${{ steps.version.outputs.version }}
-      - run: docker tag ${{ env.name }}:${{ steps.version.outputs.version }} ${{ env.name }}:latest
-      - run: docker push ${{ env.name }}:latest
+      - if: ${{ steps.check.outputs.exists == 'false' }}
+        run: docker tag ${{ env.name }}:${{ steps.version.outputs.version }} ${{ env.name }}:latest
+      - if: ${{ steps.check.outputs.exists == 'false' }}
+        run: docker push ${{ env.name }}:latest
 
   build-gcc-docker-image:
     needs: [build-base-docker-image]
@@ -98,8 +107,9 @@ jobs:
                         --build-arg GCC_VERSION=$GCC_VERSION \
                         --tag ${{ env.name }}:${{ steps.version.outputs.version }}
 
-
       - if: ${{ steps.check.outputs.exists == 'false' }}
         run: docker push ${{ env.name }}:${{ steps.version.outputs.version }}
-      - run: docker tag ${{ env.name }}:${{ steps.version.outputs.version }} ${{ env.name }}:latest
-      - run: docker push ${{ env.name }}:latest
+      - if: ${{ steps.check.outputs.exists == 'false' }}
+        run: docker tag ${{ env.name }}:${{ steps.version.outputs.version }} ${{ env.name }}:latest
+      - if: ${{ steps.check.outputs.exists == 'false' }}
+        run: docker push ${{ env.name }}:latest
