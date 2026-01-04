@@ -12,6 +12,7 @@ LABEL maintainer="Knuth Project <info@kth.cash>"
 
 RUN apt-get -qq update \
     && apt-get -qq install -y --no-install-recommends --no-install-suggests -o=Dpkg::Use-Pty=0 \
+       make \
        g++-multilib \
        gcc \
        curl \
