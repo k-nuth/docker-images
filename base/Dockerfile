@@ -26,6 +26,7 @@ RUN apt-get -qq update \
        binutils \
        wget \
        git \
+       make \
        g++-multilib \
        libgmp-dev \
        libmpfr-dev \
