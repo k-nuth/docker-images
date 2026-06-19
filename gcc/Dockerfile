@@ -43,6 +43,7 @@ RUN wget -q --no-check-certificate https://ftp.fu-berlin.de/unix/languages/gcc/r
 # No nls (native language support) because we only use English in Knuth
 
 RUN cd gcc-${GCC_VERSION} \
+    && ./contrib/download_prerequisites \
     && ./configure \
                    --build=x86_64-linux-gnu \
                    --disable-bootstrap \
@@ -50,7 +51,6 @@ RUN cd gcc-${GCC_VERSION} \
                    --disable-nls \
                    --enable-languages=c,c++,fortran \
                    --disable-werror \
-                   --without-isl \
                    --with-system-zlib \
                    --prefix=/tmp/install \
     && make -s -j$(nproc) \
