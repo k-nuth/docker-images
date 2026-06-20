@@ -52,6 +52,13 @@ RUN echo /opt/kth/lib > /etc/ld.so.conf.d/kth.conf && ldconfig
 
 COPY --from=build /deploy/direct_deploy/kth/bin/kth /usr/local/bin/kth
 
+# Run the node as an unprivileged user. /data is owned by it so the node can
+# persist its state there (and named volumes inherit that ownership).
+RUN useradd --system --user-group --no-create-home --home-dir /data kth \
+ && mkdir -p /data \
+ && chown kth:kth /data
+USER kth
+
 # kth writes its data (blockchain/, archive/, hosts.cache, logs) relative to the
 # working directory, so anchor it to a single mountable location.
 WORKDIR /data
