@@ -41,10 +41,12 @@ RUN wget -q --no-check-certificate https://ftp.fu-berlin.de/unix/languages/gcc/r
     && tar Jxf gcc-${GCC_VERSION}.tar.xz
 
 # INFO: GCC build reference: https://gcc.gnu.org/install/configure.html
-# Disabling bootstrap save us around 1h
-# Disable multilib as Knuth no longer supports x86
-# Enable Fortran as lapack package is basically broken
-# No nls (native language support) because we only use English in Knuth
+# Disabling bootstrap saves us around 1h.
+# Disable multilib — Knuth no longer supports x86.
+# No nls (native language support) — we only use English in Knuth.
+# C and C++ only — kth does not link Fortran (dropping it also avoids
+# libquadmath, which fails to configure under --disable-bootstrap with
+# GCC 16's in-tree ISL).
 
 RUN cd gcc-${GCC_VERSION} \
     && ./contrib/download_prerequisites \
@@ -53,9 +55,8 @@ RUN cd gcc-${GCC_VERSION} \
                    --disable-bootstrap \
                    --disable-multilib \
                    --disable-nls \
-                   --enable-languages=c,c++,fortran \
+                   --enable-languages=c,c++ \
                    --disable-werror \
-                   --disable-libssp \
                    --with-system-zlib \
                    --prefix=/tmp/install \
     && make -s -j$(nproc) \
