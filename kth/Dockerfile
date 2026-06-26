@@ -8,7 +8,10 @@
 # prebuilt from that remote; only the few pieces that have no matching prebuilt
 # for this profile (currently utxoz) are compiled here, which takes ~1-2 min.
 
-ARG TOOLCHAIN=kthnode/gcc15-ubuntu24.04:latest
+# Pinned by digest so a future `:latest` retag of the toolchain image
+# doesn't silently change the binaries we produce. Bump deliberately when
+# the toolchain moves (GCC bump, base distro bump, ...).
+ARG TOOLCHAIN=kthnode/gcc15-ubuntu24.04@sha256:4988fdeb3654c2b5ea591ffa4454f67e1a631549449c62e35060ba69da79eb67
 ARG RUNTIME=ubuntu:24.04
 
 FROM ${TOOLCHAIN} AS build
