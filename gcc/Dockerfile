@@ -31,6 +31,9 @@ RUN apt-get -qq update \
        libgmp-dev \
        libmpfr-dev \
        libmpc-dev \
+       libisl-dev \
+       gawk \
+       python3 \
        nasm \
        dh-autoreconf \
        libffi-dev \
@@ -64,12 +67,15 @@ RUN cd gcc-${GCC_VERSION} \
                    --disable-nls \
                    --enable-languages=c,c++ \
                    --disable-werror \
-                   --without-isl \
                    --with-system-zlib \
                    --prefix=/tmp/install \
     && (make -s -j$(nproc) || { \
-         echo "=== BUILD FAILED — dumping config.log files ==="; \
-         find . -name config.log -newer Makefile -exec sh -c 'echo "===== {} ====="; tail -120 {}' \; ; \
+         echo "=== BUILD FAILED — dumping libgomp/libgcc/libatomic config.log ==="; \
+         for d in x86_64-linux-gnu/libgomp x86_64-linux-gnu/libgcc x86_64-linux-gnu/libatomic; do \
+           [ -f "$d/config.log" ] || continue; \
+           echo "========== $d/config.log =========="; \
+           cat "$d/config.log"; \
+         done; \
          exit 2; }) \
     && make install-strip
 
