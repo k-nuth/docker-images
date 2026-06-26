@@ -20,6 +20,7 @@ RUN apt-get -qq update \
        zlib1g-dev \
        ca-certificates \
        autoconf-archive \
+       bzip2 \
        binutils \
        libgmp-dev \
        libmpfr-dev \
