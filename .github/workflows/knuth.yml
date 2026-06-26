@@ -62,10 +62,10 @@ jobs:
     env:
       name: kthnode/base-ubuntu$DISTRO_VERSION
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - id: version
         run: echo "version=${{ hashFiles('base/Dockerfile') }}" >> $GITHUB_OUTPUT
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
@@ -98,10 +98,10 @@ jobs:
     env:
       name: kthnode/gcc$GCC_VERSION_SHORT-ubuntu$DISTRO_VERSION
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - id: version
         run: echo "version=${{ hashFiles('gcc/Dockerfile') }}" >> $GITHUB_OUTPUT
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
