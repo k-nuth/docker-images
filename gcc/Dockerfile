@@ -67,16 +67,10 @@ RUN cd gcc-${GCC_VERSION} \
                    --disable-nls \
                    --enable-languages=c,c++ \
                    --disable-werror \
+                   --disable-libatomic \
                    --with-system-zlib \
                    --prefix=/tmp/install \
-    && (make -s -j$(nproc) || { \
-         echo "=== BUILD FAILED — dumping libgomp/libgcc/libatomic config.log ==="; \
-         for d in x86_64-linux-gnu/libgomp x86_64-linux-gnu/libgcc x86_64-linux-gnu/libatomic; do \
-           [ -f "$d/config.log" ] || continue; \
-           echo "========== $d/config.log =========="; \
-           cat "$d/config.log"; \
-         done; \
-         exit 2; }) \
+    && make -s -j$(nproc) \
     && make install-strip
 
 FROM ${DOCKER_USERNAME}/base-${DISTRO}${SUFFIX}:${DOCKER_TAG} as deploy
