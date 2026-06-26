@@ -12,9 +12,12 @@ LABEL maintainer="Knuth Project <info@kth.cash>"
 
 RUN apt-get -qq update \
     && apt-get -qq install -y --no-install-recommends --no-install-suggests -o=Dpkg::Use-Pty=0 \
-       make \
-       g++-multilib \
+       build-essential \
        gcc \
+       g++ \
+       libc6-dev \
+       linux-libc-dev \
+       make \
        curl \
        wget \
        zlib1g-dev \
@@ -64,7 +67,10 @@ RUN cd gcc-${GCC_VERSION} \
                    --without-isl \
                    --with-system-zlib \
                    --prefix=/tmp/install \
-    && make -s -j$(nproc) \
+    && (make -s -j$(nproc) || { \
+         echo "=== BUILD FAILED — dumping config.log files ==="; \
+         find . -name config.log -newer Makefile -exec sh -c 'echo "===== {} ====="; tail -120 {}' \; ; \
+         exit 2; }) \
     && make install-strip
 
 FROM ${DOCKER_USERNAME}/base-${DISTRO}${SUFFIX}:${DOCKER_TAG} as deploy
