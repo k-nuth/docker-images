@@ -55,6 +55,7 @@ RUN cd gcc-${GCC_VERSION} \
                    --disable-nls \
                    --enable-languages=c,c++,fortran \
                    --disable-werror \
+                   --disable-libssp \
                    --with-system-zlib \
                    --prefix=/tmp/install \
     && make -s -j$(nproc) \
