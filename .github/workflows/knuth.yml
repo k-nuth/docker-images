@@ -57,7 +57,6 @@ jobs:
   build-base-docker-image:
     runs-on: ubuntu-latest
     outputs:
-      name: kthnode/base-ubuntu$DISTRO_VERSION:${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.version }}
     env:
       name: kthnode/base-ubuntu$DISTRO_VERSION
@@ -93,7 +92,6 @@ jobs:
     needs: [build-base-docker-image]
     runs-on: ubuntu-latest
     outputs:
-      name: kthnode/gcc$GCC_VERSION_SHORT-ubuntu$DISTRO_VERSION:${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.version }}
     env:
       name: kthnode/gcc$GCC_VERSION_SHORT-ubuntu$DISTRO_VERSION
