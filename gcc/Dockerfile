@@ -21,6 +21,9 @@ RUN apt-get -qq update \
        ca-certificates \
        autoconf-archive \
        bzip2 \
+       flex \
+       bison \
+       texinfo \
        binutils \
        libgmp-dev \
        libmpfr-dev \
