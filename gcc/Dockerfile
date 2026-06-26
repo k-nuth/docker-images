@@ -41,21 +41,22 @@ RUN wget -q --no-check-certificate https://ftp.fu-berlin.de/unix/languages/gcc/r
     && tar Jxf gcc-${GCC_VERSION}.tar.xz
 
 # INFO: GCC build reference: https://gcc.gnu.org/install/configure.html
-# Disabling bootstrap saves us around 1h.
 # Disable multilib — Knuth no longer supports x86.
 # No nls (native language support) — we only use English in Knuth.
 # C and C++ only — kth does not link Fortran, dropping it also avoids
 # libquadmath (the Fortran __float128 runtime).
-# Use system GMP/MPFR/MPC from apt and skip ISL entirely. Pulling them
-# in-tree via `contrib/download_prerequisites` made the target-libs
-# configure trip GCC_NO_EXECUTABLES on GCC 16 under --disable-bootstrap.
-# ISL is only used by GCC's graphite-loop-optimizations — not relevant
-# for kth and not on by default.
+# Use system GMP/MPFR/MPC from apt and skip ISL entirely. ISL is only
+# used by GCC's graphite-loop-optimizations — not relevant for kth and
+# not on by default.
+# Bootstrap is enabled (the default): GCC 16 under --disable-bootstrap
+# on Ubuntu 24.04's host gcc-13 hits "C compiler cannot create
+# executables" while configuring libgomp. The full 3-stage bootstrap
+# avoids that class of failure — the build is ~1h instead of ~15min,
+# but is also reliable.
 
 RUN cd gcc-${GCC_VERSION} \
     && ./configure \
                    --build=x86_64-linux-gnu \
-                   --disable-bootstrap \
                    --disable-multilib \
                    --disable-nls \
                    --enable-languages=c,c++ \
