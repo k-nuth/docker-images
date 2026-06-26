@@ -44,12 +44,15 @@ RUN wget -q --no-check-certificate https://ftp.fu-berlin.de/unix/languages/gcc/r
 # Disabling bootstrap saves us around 1h.
 # Disable multilib — Knuth no longer supports x86.
 # No nls (native language support) — we only use English in Knuth.
-# C and C++ only — kth does not link Fortran (dropping it also avoids
-# libquadmath, which fails to configure under --disable-bootstrap with
-# GCC 16's in-tree ISL).
+# C and C++ only — kth does not link Fortran, dropping it also avoids
+# libquadmath (the Fortran __float128 runtime).
+# Use system GMP/MPFR/MPC from apt and skip ISL entirely. Pulling them
+# in-tree via `contrib/download_prerequisites` made the target-libs
+# configure trip GCC_NO_EXECUTABLES on GCC 16 under --disable-bootstrap.
+# ISL is only used by GCC's graphite-loop-optimizations — not relevant
+# for kth and not on by default.
 
 RUN cd gcc-${GCC_VERSION} \
-    && ./contrib/download_prerequisites \
     && ./configure \
                    --build=x86_64-linux-gnu \
                    --disable-bootstrap \
@@ -57,6 +60,7 @@ RUN cd gcc-${GCC_VERSION} \
                    --disable-nls \
                    --enable-languages=c,c++ \
                    --disable-werror \
+                   --without-isl \
                    --with-system-zlib \
                    --prefix=/tmp/install \
     && make -s -j$(nproc) \
