@@ -30,7 +30,6 @@ RUN conan profile detect --force \
  && conan install --requires=kth/${KNUTH_VERSION} \
       --deployer=direct_deploy --output-folder=/deploy --build=missing \
       -o "kth/*:currency=${CURRENCY}" \
-      -o "kth/*:console=True" \
       -o "kth/*:rpc=True" \
       -o "kth/*:tests=False" \
       -o "utxoz/*:with_tests=False" \
