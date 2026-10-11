@@ -27,6 +27,7 @@ The build stage uses the `gcc<N>-ubuntu24.04` toolchain so the compile profile m
 ## Triggers
 
 - `base/` and `gcc/` rebuild on push to `master` of this repo via [`knuth.yml`](.github/workflows/knuth.yml). Existing tags are reused when the image hash is unchanged.
+- Pull requests and runs in forks validate the toolchain images without Docker Hub credentials or publishing. A newly built base image is passed to the GCC job as a workflow artifact; trusted pushes and manual runs in `k-nuth/docker-images` publish as before.
 - `kth/` rebuilds on every published release in [`k-nuth/kth`](https://github.com/k-nuth/kth) via [`build-node.yml`](.github/workflows/build-node.yml), invoked as a reusable workflow from there. `workflow_dispatch` is also wired so any version can be built on demand from the Actions tab. Stable releases also retag `:latest`; prereleases (anything with a `-` suffix) tag only the version itself so an RC build doesn't displace the stable `latest`.
 
 ## Manual builds
