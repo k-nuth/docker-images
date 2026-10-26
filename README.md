@@ -12,7 +12,7 @@ Docker images that support the Knuth project. Two distinct concerns live here on
 
 ### Toolchain images (`base/`, `gcc/`)
 
-The build foundation for everything Knuth compiles in CI. `base` is Ubuntu + cmake + Python + Conan; `gcc` is `base` plus a from-source GCC built inside the image so we control the C++23 frontend independently of the Ubuntu distribution. These rebuild only when their own Dockerfile changes (the workflow keys on the file hash, so an existing tag is reused when the image content hasn't moved).
+The build foundation for everything Knuth compiles in CI. `base` is Ubuntu + cmake + Python + Conan; `gcc` is `base` plus a from-source GCC built inside the image so we control the C++23 frontend independently of the Ubuntu distribution. The base image tag hashes `base/Dockerfile`; the GCC image tag hashes both `base/Dockerfile` and `gcc/Dockerfile`, so changing either Dockerfile invalidates the GCC cache. Existing tags are reused when those hashes are unchanged.
 
 ### Node image (`kth/`)
 
@@ -27,7 +27,10 @@ The build stage uses the `gcc<N>-ubuntu24.04` toolchain so the compile profile m
 ## Triggers
 
 - `base/` and `gcc/` rebuild on push to `master` of this repo via [`knuth.yml`](.github/workflows/knuth.yml). Existing tags are reused when the image hash is unchanged.
+- Pull requests and runs in forks validate the toolchain images without Docker Hub credentials or publishing. A newly built base image is passed to the GCC job as a workflow artifact; trusted pushes and manual runs in `k-nuth/docker-images` publish as before.
+- Every pull request also builds `kth/Dockerfile` for versions `1.3.0` (the original build regression) and `1.4.0` (the current release), then runs `kth --version` in each resulting image with networking disabled. These independent checks use the Dockerfile's pinned toolchain, check out the PR changes, and never log in to a registry or publish an image.
 - `kth/` rebuilds on every published release in [`k-nuth/kth`](https://github.com/k-nuth/kth) via [`build-node.yml`](.github/workflows/build-node.yml), invoked as a reusable workflow from there. `workflow_dispatch` is also wired so any version can be built on demand from the Actions tab. Stable releases also retag `:latest`; prereleases (anything with a `-` suffix) tag only the version itself so an RC build doesn't displace the stable `latest`.
+- Release builds must pass `kth --version` in the built image before logging in to GHCR and pushing either tag. If the build or smoke check fails, the existing published tags remain unchanged.
 
 ## Manual builds
 

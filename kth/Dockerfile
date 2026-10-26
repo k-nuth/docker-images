@@ -5,8 +5,8 @@
 # The build stage reuses the project's own toolchain image so the compile
 # profile matches the binaries published on packages.kth.cash. The kth package
 # and all of its heavy dependencies (boost, openssl, lmdb, gmp, ...) are pulled
-# prebuilt from that remote; only the few pieces that have no matching prebuilt
-# for this profile (currently utxoz) are compiled here, which takes ~1-2 min.
+# prebuilt from that remote when one exists for this profile; anything missing
+# is compiled here.
 
 # Pinned by digest so a future `:latest` retag of the toolchain image
 # doesn't silently change the binaries we produce. Bump deliberately when
@@ -30,7 +30,8 @@ RUN conan profile detect --force \
  && conan install --requires=kth/${KNUTH_VERSION} \
       --deployer=direct_deploy --output-folder=/deploy --build=missing \
       -o "kth/*:currency=${CURRENCY}" \
-      -o "kth/*:console=True" \
+      -o "kth/*:rpc=True" \
+      -o "kth/*:tests=False" \
       -o "utxoz/*:with_tests=False" \
       -o "utxoz/*:with_benchmarks=False" \
       -o "utxoz/*:with_large_benchmarks=False" \
