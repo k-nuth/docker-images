@@ -55,7 +55,9 @@ env:
   # GCC_VERSION_SHORT: 14
   # GCC_VERSION: 15.2.0
   # GCC_VERSION_SHORT: 15
-  GCC_VERSION: 16.1.0
+  # GCC_VERSION: 16.1.0
+  # GCC_VERSION_SHORT: 16
+  GCC_VERSION: 16.2.0
   GCC_VERSION_SHORT: 16
 
 
@@ -139,8 +141,10 @@ jobs:
       name: kthnode/gcc$GCC_VERSION_SHORT-ubuntu$DISTRO_VERSION
     steps:
       - uses: actions/checkout@v7
+      # The Dockerfiles do not name the GCC version, so the tag has to: with
+      # the hash alone, a new GCC_VERSION finds the old image and skips the build.
       - id: version
-        run: echo "version=${{ hashFiles('base/Dockerfile', 'gcc/Dockerfile') }}" >> $GITHUB_OUTPUT
+        run: echo "version=${{ hashFiles('base/Dockerfile', 'gcc/Dockerfile') }}-gcc${GCC_VERSION}" >> $GITHUB_OUTPUT
       - uses: docker/login-action@v4
         if: ${{ env.PUBLISH_IMAGES == 'true' }}
         with:
