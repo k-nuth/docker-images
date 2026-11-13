@@ -43,6 +43,7 @@ RUN conan profile detect --force \
       -s compiler.cppstd=23
 
 
+# Keep this stage the same as source.Dockerfile's runtime stage.
 FROM ${RUNTIME} AS runtime
 
 LABEL org.opencontainers.image.title="Knuth (kth) node" \

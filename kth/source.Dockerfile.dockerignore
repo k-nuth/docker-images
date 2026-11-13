@@ -1,0 +1,5 @@
+# Read by BuildKit for kth/source.Dockerfile, whose context is a kth checkout.
+# The build needs the tree, not its history (the version comes in as a build
+# arg), and a build tree from an earlier local build would mix into this one.
+.git
+build

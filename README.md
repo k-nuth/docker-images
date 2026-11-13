@@ -9,6 +9,7 @@ Docker images that support the Knuth project. Two distinct concerns live here on
 | [`base/`](base/) | Knuth CI | `kthnode/base-ubuntu24.04` (Docker Hub) | push to `master` of this repo |
 | [`gcc/`](gcc/) | Knuth CI | `kthnode/gcc<N>-ubuntu24.04` (Docker Hub) | push to `master` of this repo |
 | [`kth/`](kth/) | end users | `ghcr.io/k-nuth/kth:<version>` (GHCR) | release in [`k-nuth/kth`](https://github.com/k-nuth/kth) |
+| [`kth/source.Dockerfile`](kth/source.Dockerfile) | testers | `ghcr.io/k-nuth/kth:master` (GHCR) | push to `master` of [`k-nuth/kth`](https://github.com/k-nuth/kth) |
 
 ### Toolchain images (`base/`, `gcc/`)
 
@@ -24,6 +25,8 @@ docker run --rm -v ./data:/data -p 8333:8333 ghcr.io/k-nuth/kth:latest
 
 The build stage uses the `gcc<N>-ubuntu24.04` toolchain so the compile profile matches the binaries on `packages.kth.cash`. The runtime stage is a slim `ubuntu:24.04` carrying only the kth binary, its GCC C++ runtime, and the CA bundle (~100 MB). The node runs as an unprivileged user with `/data` as the persistence volume.
 
+`kth/Dockerfile` packages a published release. `kth/source.Dockerfile` builds the same image from a kth source tree instead: its build context is a kth checkout at any commit or branch, built the way kth's own Linux CI builds it (the tree's Conan profile and lock file, the microarchitecture ID kth publishes its packages with, then the CMake preset Conan generates) on the `gcc16-ubuntu24.04` toolchain that kth's `master` requires. Its runtime stage is the same as `kth/Dockerfile`'s: the same user, volume, port and entrypoint, with the binary and the GCC runtime it was built with.
+
 ## Triggers
 
 - `base/` and `gcc/` rebuild on push to `master` of this repo via [`knuth.yml`](.github/workflows/knuth.yml). Existing tags are reused when the image hash is unchanged.
@@ -31,6 +34,7 @@ The build stage uses the `gcc<N>-ubuntu24.04` toolchain so the compile profile m
 - Every pull request also builds `kth/Dockerfile` for versions `1.3.0` (the original build regression) and `1.4.0` (the current release), then runs `kth --version` in each resulting image with networking disabled. These independent checks use the Dockerfile's pinned toolchain, check out the PR changes, and never log in to a registry or publish an image.
 - `kth/` rebuilds on every published release in [`k-nuth/kth`](https://github.com/k-nuth/kth) via [`build-node.yml`](.github/workflows/build-node.yml), invoked as a reusable workflow from there. `workflow_dispatch` is also wired so any version can be built on demand from the Actions tab. Stable releases also retag `:latest`; prereleases (anything with a `-` suffix) tag only the version itself so an RC build doesn't displace the stable `latest`.
 - Release builds must pass `kth --version` in the built image before logging in to GHCR and pushing either tag. If the build or smoke check fails, the existing published tags remain unchanged.
+- `kth/source.Dockerfile` rebuilds on every push to `master` of [`k-nuth/kth`](https://github.com/k-nuth/kth) via [`build-node-from-source.yml`](.github/workflows/build-node-from-source.yml), which publishes `:master` and `:master-<short sha>`. The workflow takes a kth `repository` (default `k-nuth/kth`), a `ref` (commit or branch) and a `tag`, and publishes to the caller's own GHCR namespace, `ghcr.io/<owner>/kth`, so a fork can build its own branches the same way. It runs the same `kth --version` check before pushing, never publishes `:latest` or a version tag (those stay with releases), and builds one commit per tag at a time so an older build cannot overwrite a newer one. The node reports the last release tag with a `-commit.<short sha>` suffix as its version.
 
 ## Manual builds
 
@@ -48,4 +52,7 @@ docker build ./gcc --build-arg DISTRO_VERSION=24.04 \
 
 # Node image:
 docker build ./kth --build-arg KNUTH_VERSION=1.0.0 -t kth
+
+# Node image from a kth checkout in ../kth (KNUTH_VERSION is the version it reports):
+docker build -f kth/source.Dockerfile --build-arg KNUTH_VERSION=1.5.2-commit.local -t kth ../kth
 ```

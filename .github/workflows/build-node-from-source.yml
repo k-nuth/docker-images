@@ -1,0 +1,163 @@
+name: Build node image from source
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: kth repository to build (owner/name)
+        required: false
+        default: k-nuth/kth
+        type: string
+      ref:
+        description: kth commit or branch to build
+        required: true
+        type: string
+      tag:
+        description: image tag to publish (e.g. master)
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: kth repository to build (owner/name)
+        required: false
+        default: k-nuth/kth
+        type: string
+      ref:
+        description: kth commit or branch to build
+        required: true
+        type: string
+      tag:
+        description: image tag to publish (e.g. master)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-node-docker-image:
+    runs-on: ubuntu-latest
+    # One build per published tag at a time, so a slower build of an older
+    # commit cannot finish last and move the tag back to it.
+    concurrency:
+      group: build-node-from-source-${{ github.repository_owner }}-${{ inputs.tag }}
+    steps:
+      # Explicit repository/ref, as in build-node.yml: when this reusable
+      # workflow is invoked from k-nuth/kth, the default checkout would be the
+      # caller (kth); we need this repo's kth/source.Dockerfile instead.
+      - uses: actions/checkout@v7
+        with:
+          repository: k-nuth/docker-images
+          ref: master
+          persist-credentials: false
+
+      # The build context. Full history, for the release tag the version
+      # starts from.
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.ref }}
+          path: kth-src
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: meta
+        working-directory: kth-src
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          # Docker tags allow only [A-Za-z0-9_.-], may not start with `.` or
+          # `-`, and must leave room for the `-<short sha>` tag within 128
+          # characters.
+          if ! [[ "$INPUT_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,118}$ ]]; then
+            echo "::error::Invalid tag '$INPUT_TAG' (expected e.g. master)"
+            exit 1
+          fi
+          # `:latest` and version tags are published only by build-node.yml,
+          # for releases.
+          if [[ "$INPUT_TAG" == latest || "$INPUT_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "::error::Tag '$INPUT_TAG' is reserved for release images"
+            exit 1
+          fi
+          sha="$(git rev-parse HEAD)"
+          short="${sha:0:8}"
+          # Versioned like kth's own CI builds of master: the last release tag
+          # with a `-commit` suffix, 0.0.0 when no tag is reachable. The suffix
+          # names the commit instead of kth's run number.
+          last_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || echo v0.0.0)"
+          version="${last_tag#v}-commit.${short}"
+          owner="$(echo "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')"
+          image="ghcr.io/${owner}/kth"
+          {
+            echo "version=${version}"
+            echo "revision=${sha}"
+            echo "image=${image}"
+            echo "tag=${INPUT_TAG}"
+            echo "list<<EOF"
+            echo "${image}:${INPUT_TAG}"
+            echo "${image}:${INPUT_TAG}-${short}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Build with the toolchain the commit's own CI uses, so a GCC bump in
+      # kth reaches the image without anyone editing this repo. kth names it
+      # in ci_utils/.github/matrix.json; the digest is resolved now and
+      # recorded in the image. Without that file, the TOOLCHAIN default in
+      # kth/source.Dockerfile applies.
+      - id: toolchain
+        run: |
+          matrix=kth-src/ci_utils/.github/matrix.json
+          image=$(jq -r '[.config[] | select(.compiler == "GCC")][0] | "kthnode/gcc\(.version)\(.docker_suffix)"' \
+            "$matrix" 2>/dev/null || true)
+          if [[ "$image" != kthnode/gcc* ]]; then
+            echo "No GCC toolchain in ${matrix}; using the Dockerfile default."
+            exit 0
+          fi
+          digest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}' | jq -r .digest)
+          echo "Toolchain from the commit: ${image}@${digest}"
+          echo "arg=TOOLCHAIN=${image}@${digest}" >> "$GITHUB_OUTPUT"
+          echo "label=org.opencontainers.image.base.name=${image}@${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Build node image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./kth-src
+          file: ./kth/source.Dockerfile
+          load: true
+          push: false
+          build-args: |
+            KNUTH_VERSION=${{ steps.meta.outputs.version }}
+            ${{ steps.toolchain.outputs.arg }}
+          tags: ${{ steps.meta.outputs.list }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ inputs.repository }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
+            ${{ steps.toolchain.outputs.label }}
+
+      - name: Check node version before publishing
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: docker run --rm --network none --entrypoint /usr/local/bin/kth "$IMAGE:$TAG" --version
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish checked node image
+        env:
+          TAGS: ${{ steps.meta.outputs.list }}
+        run: |
+          while IFS= read -r tag; do
+            if [[ -n "$tag" ]]; then
+              docker push "$tag"
+            fi
+          done <<< "$TAGS"
