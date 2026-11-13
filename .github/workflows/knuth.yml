@@ -78,8 +78,27 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      # Same toolchain lookup as build-node.yml, so the check builds what a
+      # release of this version would build.
+      - id: toolchain
+        run: |
+          matrix=$(curl -fsSL --retry 3 \
+            "https://raw.githubusercontent.com/k-nuth/kth/v${KNUTH_VERSION}/ci_utils/.github/matrix.json" || true)
+          image=$(jq -r '[.config[] | select(.compiler == "GCC")][0] | "kthnode/gcc\(.version)\(.docker_suffix)"' \
+            <<< "$matrix" 2>/dev/null || true)
+          if [[ -z "$matrix" || "$image" != kthnode/gcc* ]]; then
+            echo "No GCC toolchain in kth v${KNUTH_VERSION}'s matrix.json; using the Dockerfile default."
+            exit 0
+          fi
+          digest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}' | jq -r .digest)
+          echo "Toolchain from kth v${KNUTH_VERSION}: ${image}@${digest}"
+          echo "toolchain=${image}@${digest}" >> "$GITHUB_OUTPUT"
       - name: Build node image without publishing
-        run: docker build ./kth --build-arg KNUTH_VERSION="$KNUTH_VERSION" --tag local/kth:pr
+        env:
+          TOOLCHAIN: ${{ steps.toolchain.outputs.toolchain }}
+        run: |
+          docker build ./kth --build-arg KNUTH_VERSION="$KNUTH_VERSION" \
+            ${TOOLCHAIN:+--build-arg TOOLCHAIN="$TOOLCHAIN"} --tag local/kth:pr
       - name: Check node version
         run: docker run --rm --network none --entrypoint /usr/local/bin/kth local/kth:pr --version
 
