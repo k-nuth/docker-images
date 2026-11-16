@@ -9,6 +9,7 @@ Docker images that support the Knuth project. Two distinct concerns live here on
 | [`base/`](base/) | Knuth CI | `kthnode/base-ubuntu24.04` (Docker Hub) | push to `master` of this repo |
 | [`gcc/`](gcc/) | Knuth CI | `kthnode/gcc<N>-ubuntu24.04` (Docker Hub) | push to `master` of this repo |
 | [`kth/`](kth/) | end users | `ghcr.io/k-nuth/kth:<version>` (GHCR) | release in [`k-nuth/kth`](https://github.com/k-nuth/kth) |
+| [`kth/source.Dockerfile`](kth/source.Dockerfile) | developers | Local image only | Explicit `docker build` |
 
 ### Toolchain images (`base/`, `gcc/`)
 
@@ -23,6 +24,10 @@ docker run --rm -v ./data:/data -p 8333:8333 ghcr.io/k-nuth/kth:latest
 ```
 
 The build stage uses the `gcc<N>-ubuntu24.04` toolchain so the compile profile matches the binaries on `packages.kth.cash`. The runtime stage is a slim `ubuntu:24.04` carrying only the kth binary, its GCC C++ runtime, and the CA bundle (~100 MB). The node runs as an unprivileged user with `/data` as the persistence volume.
+
+`kth/source.Dockerfile` builds a local development image from a Knuth source checkout. It uses the checkout's Conan profiles and lock file, builds only the node executable, and keeps the runtime user, volume and entrypoint of the release image. It does not run the test suite. A build from `master` is a development build, not a Knuth release.
+
+Source builds are opt-in and local: no workflow builds them on pushes or publishes them to the official registry. If you need to distribute development images for your own integration, use your own repository and registry namespace, with development tags and your own retention policy. Official Knuth images follow the release process.
 
 ## Triggers
 
@@ -48,4 +53,14 @@ docker build ./gcc --build-arg DISTRO_VERSION=24.04 \
 
 # Node image:
 docker build ./kth --build-arg KNUTH_VERSION=1.0.0 -t kth
+
+# Local development node from a clean kth checkout in ../kth:
+# The bundled toolchain/profile target Linux x86_64. Other hosts need emulation.
+docker build --platform linux/amd64 -f kth/source.Dockerfile \
+    --build-arg KNUTH_VERSION=0.0.0-dev.local --tag local/kth:dev ../kth
+
+# Check the local image:
+docker run --rm --network none --entrypoint /usr/local/bin/kth local/kth:dev --version
 ```
+
+The source Dockerfile pins a GCC 16.2 toolchain by digest. It does not follow a moving toolchain tag or automatically select one from the checkout. If the source requires a different toolchain, pass a compatible pinned image with `--build-arg TOOLCHAIN=<image>@sha256:<digest>`. Dependencies unavailable as prebuilt packages are compiled locally, which can make the build expensive.
